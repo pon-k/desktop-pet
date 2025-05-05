@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QLabel
 from PySide6.QtGui import QMovie
 from PySide6 import QtCore
 from dotenv import load_dotenv
+import random
 
 # Fetch screen resolution
 
@@ -37,9 +38,28 @@ class MainWindow(QMainWindow):
         self.label.setScaledContents(True)
         self.setCentralWidget(self.label)
         self.movie.start()
+    
+    def switch_sprite(self, sprite):
+        self.movie.stop()
+        self.label.clear()
+        self.label = QLabel()
+        self.movie = QMovie(sprite)
+        self.label.setMovie(self.movie)
+        self.label.setScaledContents(True)
+        self.setCentralWidget(self.label)
+        self.movie.start()
+
+    def running(self):
+        roll = random.randrange(0,1)
+        if roll == 0:
+            
+
+
 
 app = QApplication(sys.argv)
 main = MainWindow()
 main.show()
 app.exec()
+
+
 
