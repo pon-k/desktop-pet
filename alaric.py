@@ -1,6 +1,6 @@
 import os, sys, tkinter, asyncio, random, logging, sys
 from pathlib import Path
-from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QLabel, QLineEdit
+from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout
 from PySide6.QtGui import QMovie, QKeyEvent
 from PySide6 import QtCore
 from dotenv import load_dotenv
@@ -22,34 +22,45 @@ RUN_R, RUN_L = os.getenv("RUN_R"), os.getenv("RUN_L")
 WAG_R, WAG_L = os.getenv("WAG_R"), os.getenv("WAG_L")
 
 
-# Assign variables and such
+# Define classes for GUI
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
+        self.layout = QVBoxLayout()
         self.window = QWidget()
         self.setWindowTitle('SIR ALARIC THE NOBLE')
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
         self.setGeometry(width * 0.7, height * 0.85, 200, 200)
         self.setFixedSize(200, 200)
+        self.set_sprite(BLINK_R)
+
+        self.terminal = QLineEdit()
+        self.terminal.setWindowTitle('Control Terminal')
+        self.terminal.show()
+        self.terminal.returnPressed.connect(self.rec_message)
+
+
+    def set_sprite(self, sprite):
         self.label = QLabel()
-        self.movie = QMovie(BLINK_R)
+        self.movie = QMovie(sprite)
+        self.label.setFixedSize(200, 200)
         self.label.setMovie(self.movie)
         self.label.setScaledContents(True)
-        self.setCentralWidget(self.label)
         self.movie.start()
-    
+        self.setCentralWidget(self.label)
+
+    def rec_message(self):
+        self.user_input = str(self.terminal.text())
+        self.terminal.clear()
+        print(self.user_input)
+
+
     def switch_sprite(self, sprite):
         self.movie.stop()
         self.label.clear()
-        self.label = QLabel()
-        self.movie = QMovie(sprite)
-        self.label.setMovie(self.movie)
-        self.label.setScaledContents(True)
-        self.setCentralWidget(self.label)
-        self.movie.start()
+        self.set_sprite(sprite)
         logging.info("Changing animation...")
 
     def keyReleaseEvent(self, event: QKeyEvent):
