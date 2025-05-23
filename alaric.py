@@ -1,10 +1,10 @@
-import os, sys, tkinter, asyncio, random, logging, sys
-from pathlib import Path
-from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QLabel, QLineEdit, QHBoxLayout, QVBoxLayout
+import os, sys, tkinter, asyncio, random, logging
+from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QLabel, QLineEdit
 from PySide6.QtGui import QMovie, QKeyEvent
 from PySide6 import QtCore
 from dotenv import load_dotenv
 from PySide6 import QtAsyncio
+from openai import AsyncOpenAI
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(asctime)s | %(message)s")
 
@@ -20,6 +20,13 @@ load_dotenv()
 BLINK_R, BLINK_L = os.getenv("BLINK_R"), os.getenv("BLINK_L")
 RUN_R, RUN_L = os.getenv("RUN_R"), os.getenv("RUN_L")
 WAG_R, WAG_L = os.getenv("WAG_R"), os.getenv("WAG_L")
+API_KEY = os.getenv("API_KEY")
+logging.info(API_KEY)
+
+
+# Calling code for AI model
+client = AsyncOpenAI(api_key=API_KEY, base_url="https://api.deepseek.com")
+
 
 
 # Define classes for GUI
@@ -27,7 +34,6 @@ WAG_R, WAG_L = os.getenv("WAG_R"), os.getenv("WAG_L")
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.layout = QVBoxLayout()
         self.window = QWidget()
         self.setWindowTitle('SIR ALARIC THE NOBLE')
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
@@ -36,8 +42,11 @@ class MainWindow(QMainWindow):
         self.setFixedSize(200, 200)
         self.set_sprite(BLINK_R)
 
+        self.user_input = ''
+
         self.terminal = QLineEdit()
-        self.terminal.setWindowTitle('Control Terminal')
+        self.terminal.setWindowTitle('Enter your prompt')
+        self.terminal.setFixedSize(500, 50)
         self.terminal.show()
         self.terminal.returnPressed.connect(self.rec_message)
 
@@ -51,10 +60,19 @@ class MainWindow(QMainWindow):
         self.movie.start()
         self.setCentralWidget(self.label)
 
+    async def send_message(self, message):
+        response = await client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[{"role": "system", "content": "You are a desktop assistant in the form of a dog, and will respond to all subsequent prompts like a noble. Also you will occasionally end your sentences with 'woof'"},  
+        {"role": "user", "content": message}],
+        stream=False
+        )
+        print(response.choices[0].message.content)
+
     def rec_message(self):
         self.user_input = str(self.terminal.text())
         self.terminal.clear()
-        print(self.user_input)
+        logging.info(f"Sending prompt '{self.user_input}'...")
 
 
     def switch_sprite(self, sprite):
@@ -67,6 +85,16 @@ class MainWindow(QMainWindow):
         if event.key() == QtCore.Qt.Key_Escape:
             logging.info("Closing the program...")
             sys.exit()
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if event.key() == QtCore.Qt.Key_Tab:
+            if self.terminal.isVisible():
+                self.terminal.hide()
+                logging.info("Hiding terminal...")
+            else:
+                self.terminal.show()
+                logging.info("Showing terminal...")
+
 
     async def running(self):
         roll = random.randrange(0, 2)
@@ -85,35 +113,38 @@ class MainWindow(QMainWindow):
                 self.move(new_pos, self.y())
                 await asyncio.sleep(0.5)
             self.switch_sprite(BLINK_R)
-        logging.info("Running animation initiated...")
+        #logging.info("Running animation initiated...")
 
     async def animation_loop(self):
         logging.info("Animation loop started...")
         while True:
             cur_action = random.randrange(0, 100)
 
+            if self.user_input:
+                await self.send_message(self.user_input)
+                self.user_input = ''
+
             if cur_action < 10:
-                logging.info("Rolled running animation...")
+                #logging.info("Rolled running animation...")
                 await self.running()
             elif cur_action < 30 and cur_action > 11:
-                logging.info("Rolled left blinking animation...")
+                #logging.info("Rolled left blinking animation...")
                 self.switch_sprite(BLINK_L)
             elif cur_action < 50 and cur_action > 31:
-                logging.info("Rolled right blinking animation...")
+                #logging.info("Rolled right blinking animation...")
                 self.switch_sprite(BLINK_R)
             elif cur_action < 70 and cur_action > 51:
-                logging.info("Rolled left tail wagging animation...")
+                #logging.info("Rolled left tail wagging animation...")
                 self.switch_sprite(WAG_L)
             elif cur_action < 90 and cur_action > 71:
-                logging.info("Rolled right tail wagging animation...")
+                #logging.info("Rolled right tail wagging animation...")
                 self.switch_sprite(WAG_R)
             else:
-                logging.info("Rolled for no change...")
+                #logging.info("Rolled for no change...")
                 await asyncio.sleep(5)
 
-            logging.info("Sleeping animation loop...")    
-            await asyncio.sleep(random.randrange(3, 20))
-
+            #logging.info("Sleeping animation loop...")    
+            await asyncio.sleep(random.randrange(3, 5))
 
 app = QApplication(sys.argv)
 main = MainWindow()
