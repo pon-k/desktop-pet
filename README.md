@@ -1,2 +1,2 @@
 # Desktop Pet
-An animated desktop pet serving as a wrapper for Chat GPT
+An animated desktop pet + ChatGPT + Text to speech
