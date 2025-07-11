@@ -5,7 +5,8 @@ from PySide6 import QtCore
 from dotenv import load_dotenv
 from PySide6 import QtAsyncio
 from openai import OpenAI
-
+from elevenlabs.client import ElevenLabs
+from elevenlabs import play
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(asctime)s | %(message)s")
 
 # Fetch screen resolution
@@ -20,7 +21,9 @@ load_dotenv()
 BLINK_R, BLINK_L = os.getenv("BLINK_R"), os.getenv("BLINK_L")
 RUN_R, RUN_L = os.getenv("RUN_R"), os.getenv("RUN_L")
 WAG_R, WAG_L = os.getenv("WAG_R"), os.getenv("WAG_L")
+TALK_R, TALK_L = os.getenv("TALK_R"), os.getenv("TALK_L")
 API_KEY = os.getenv("API_KEY")
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY") 
 
 
 # Define classes for GUI
@@ -55,13 +58,26 @@ class MainWindow(QMainWindow):
 
     def send_message(self, message):
         client = OpenAI(api_key=API_KEY, base_url="https://api.deepseek.com")
+        elevenlabs = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"),)
         response = client.chat.completions.create(
         model="deepseek-chat",
-        messages=[{"role": "system", "content": "You are a desktop assistant in the form of a dog. Your name is Sir Alaric and you speak old timey english, interspersed with random woofs."},  
+        messages=[{"role": "system", "content": '''You are a desktop assistant in the form of a dog.
+                    Your name is Sir Alaric and you speak old timey english, interspersed with random woofs.
+                   '''},  
         {"role": "user", "content": message}],
         stream=False
         )
+
+        audio = elevenlabs.text_to_speech.convert(
+        text=response.choices[0].message.content,
+        voice_id="fATgBRI8wg5KkDFg8vBd",
+        model_id="eleven_multilingual_v2",
+        output_format="mp3_44100_128",
+        )
+
         print(response.choices[0].message.content)
+        play(audio)
+
 
     def rec_message(self):
         self.user_input = str(self.terminal.text())
@@ -69,7 +85,6 @@ class MainWindow(QMainWindow):
         ch_thread = threading.Thread(target=self.send_message, args=(self.user_input,))
         ch_thread.start()
         logging.info(f"Sending prompt '{self.user_input}'...")
-
 
     def switch_sprite(self, sprite):
         self.movie.stop()
@@ -90,7 +105,6 @@ class MainWindow(QMainWindow):
             else:
                 self.terminal.show()
                 logging.info("Showing terminal...")
-
 
     async def running(self):
         roll = random.randrange(0, 2)
